@@ -805,6 +805,7 @@ jobs:
         if: ${{ github.event.inputs.SCHED_HMBIRD == 'true' }}
         run: |
           cd kernel_workspace/kernel_platform/common
+          CLEAN_FILE="${FILE//_bak/}"
           for p in ./kernel/sched/hmbird* ./vendor/oplus/kernel/cpu/sched_ext/hmbird*; do
             [ -d "$p" ] && {
               echo "源码中风驰代码已经存在，启用二次回退"
@@ -813,11 +814,11 @@ jobs:
           done
           git clone https://github.com/Numbersf/SCHED_PATCH.git -b $CPU || { echo "❌ CPU 分支不存在，风驰内核暂未支持你的机型，请关闭后重试"; exit 11; }
           echo "正在拉取风驰补丁"
-          cp ./SCHED_PATCH/fengchi_${FILE}.patch ./
-          if [[ -f "fengchi_${FILE}.patch" ]]; then
+          cp ./SCHED_PATCH/fengchi_${CLEAN_FILE}.patch ./
+          if [[ -f "fengchi_${CLEAN_FILE}.patch" ]]; then
             echo "正在打风驰补丁"
-            dos2unix "fengchi_${FILE}.patch"
-            patch -p1 -F 3 < "fengchi_${FILE}.patch"
+            dos2unix "fengchi_${CLEAN_FILE}.patch"
+            patch -p1 -F 3 < "fengchi_${CLEAN_FILE}.patch"
             echo "fengchi_patch完成"
           else
             echo "❌ 未匹配到补丁，风驰内核暂未支持你的机型，请关闭后重试"
