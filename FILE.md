@@ -1,6 +1,7 @@
-# 这里是目前支持的所有机型及其对应大安卓版本清单
-# This list shows all currently supported device models and their Android versions.
+### 这里是目前支持的所有机型及其对应大安卓版本清单
+### ``This list shows all currently supported device models and their Android versions.``
 
+```
 # Android16
 oneplus_10_pro_b
 oneplus_11r_b
@@ -167,3 +168,4 @@ oneplus_ace_t
 # Android12
 oneplus_10_pro_s
 oneplus_10r_s
+```
