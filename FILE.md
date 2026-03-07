@@ -78,6 +78,7 @@ oppo_reno_15_b
 oppo_pad_5_b
 
 # Android15
+oneplus_nord_n30_se_5g_v
 oneplus_10r_v
 oneplus_nord_3_v
 oneplus_ace_v
