@@ -221,10 +221,9 @@ jobs:
             local ENTRY=$1
             local OWNER=${ENTRY%%|*}
             local REPO_NAME=${ENTRY##*|}
-            local API_URL="https://api.github.com/repos/${OWNER}/${REPO_NAME}"
 
             echo "🌐 尝试拉取 ${OWNER}/${REPO_NAME} 分支列表..."
-            BRANCHES=$(curl -fsL "$API_URL/branches" | jq -r 'if type=="array" then .[].name else empty end' 2>/dev/null || true)
+            BRANCHES=$(git ls-remote --heads https://github.com/${OWNER}/${REPO_NAME}.git | sed 's|.*refs/heads/||')
 
             if [[ -z "$BRANCHES" ]]; then
               echo "⚠️ ${OWNER}/${REPO_NAME} 分支列表获取失败，请尝试重新运行工作流。"
@@ -235,7 +234,7 @@ jobs:
               README_URL="https://raw.githubusercontent.com/${OWNER}/${REPO_NAME}/${BRANCH}/README.md"
 
               if curl -sf --head "$XML_URL" >/dev/null; then
-                echo "✅ 在 ${OWNER}/${REPO_NAME} 找到 ${FILE}.xml(分支: ${BRANCH})"
+                echo "✅ 在 ${OWNER}/${REPO_NAME} 找到 ${FILE}.xml (分支: ${BRANCH})"
                 curl -s -o "$XML_PATH" "$XML_URL"
                 curl -s -o "$README_PATH" "$README_URL" || true
 
