@@ -358,7 +358,7 @@ jobs:
 
       - name: Restore Ccache
         if: ${{ github.event.inputs.BUILD_NOCCACHE == 'false' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ccache-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-${{ env.BUILD_METHOD }}-${{ github.event.inputs.FAST_BUILD == 'true' && 'alpha' || 'beta' }}-16.2
@@ -1221,7 +1221,7 @@ jobs:
           echo "value=${{ env.ZRAM_ALGO_U && format('_{0}', env.ZRAM_ALGO_U) || '' }}${{ github.event.inputs.KPM == 'KPM' && '_KPM' || github.event.inputs.KPM == 'KPN' && '_KPN' || '' }}${{ github.event.inputs.LSM_BBG == 'true' && '_BBG' || '' }}_ILH${{ github.event.inputs.SCHED_HMBIRD== 'true' && '_HMBIRD' || '' }}" >> $GITHUB_OUTPUT
 
       - name: Upload AnyKernel3
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AnyKernel3_ReSukiSU_${{ env.KSUVER }}_${{ steps.extract_info.outputs.value }}(${{ env.TKERNEL_VERSION }})${{ steps.suffix.outputs.value }}
           path: ./AnyKernel3/*
@@ -1281,7 +1281,7 @@ jobs:
 
       - name: Upload ZRAM Module
         if: startsWith(github.event.inputs.ZRAM, '1/') && steps.zram_find.outputs.upload != 'false'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ZRAM-Module_${{ env.KERNEL_VERSION }}_${{ steps.extract_info.outputs.value }}
           path: ZRAM-Module/*
