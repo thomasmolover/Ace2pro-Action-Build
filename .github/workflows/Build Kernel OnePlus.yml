@@ -1213,7 +1213,13 @@ jobs:
           fi
           echo "Downloading from: $artifact_url"
           curl -fL -H "Authorization: token $GITHUB_TOKEN" -o "${MANAGER_ARTIFACT}.zip" "$artifact_url"
-          unzip -j "${MANAGER_ARTIFACT}.zip" "*.apk" -d ./AnyKernel3/
+          echo "Trying to extract arm64-v8a APK..."
+          if unzip -l "${MANAGER_ARTIFACT}.zip" | grep -q "arm64-v8a.*\.apk"; then
+            unzip -j "${MANAGER_ARTIFACT}.zip" "*arm64-v8a*.apk" -d ./AnyKernel3/
+          else
+            echo "arm64-v8a APK not found, extracting generic APK..."
+            unzip -j "${MANAGER_ARTIFACT}.zip" "*.apk" -d ./AnyKernel3/
+          fi
 
       - name: Set zip Suffix
         id: suffix
