@@ -1064,9 +1064,15 @@ jobs:
           cd ./common
 
           # 重映射物理路径
-          MAP="-fdebug-prefix-map=${GITHUB_WORKSPACE}=."
-          MPMAP="-fmacro-prefix-map=${GITHUB_WORKSPACE}=."
-          FPMAP="-ffile-prefix-map=${GITHUB_WORKSPACE}=."
+          COMMON_REAL_PATH=$(pwd -P)
+          PLATFORM_REAL_PATH=$(dirname "$COMMON_REAL_PATH")
+          ROOT_REAL_PATH=$(dirname "$PLATFORM_REAL_PATH")
+          MAP="-fdebug-prefix-map=$ROOT_REAL_PATH=."
+          MPMAP="-fmacro-prefix-map=$ROOT_REAL_PATH=."
+          FPMAP="-ffile-prefix-map=$ROOT_REAL_PATH=."
+
+          # KCFLAGS
+          KCFLAGS="$MAP $MPMAP $FPMAP -no-canonical-prefixes -Wno-error -D__ANDROID_COMMON_KERNEL__"
 
           MAKE_ARGS=(
             LLVM=1
@@ -1077,9 +1083,7 @@ jobs:
             LD=ld.lld
             HOSTLD=ld.lld
             PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole
-            KCFLAGS+="$MAP $MPMAP $FPMAP"
-            KCFLAGS+=-Wno-error
-            KCFLAGS+=-D__ANDROID_COMMON_KERNEL__
+            KCFLAGS="$KCFLAGS"
           )
 
           if [[ "$USE_LLVM_IAS" == "true" ]]; then
