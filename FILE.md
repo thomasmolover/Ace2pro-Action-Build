@@ -19,6 +19,7 @@ oneplus_pad_go_2_b
 oneplus_nord_ce4_lite_5g_b
 oneplus_nord_4_b
 oneplus_ace_3v_b
+oneplus_pad_mt6897_b
 oneplus_13r_b
 oneplus_ace3_pro_b
 oneplus_ace5_b
