@@ -57,6 +57,8 @@ on:
           - oneplus_15r_aosp
           - oneplus_15
           - oneplus_15_aosp
+          - oneplus_15t
+          - oneplus_15t_aosp
       MANAGER_SOURCE:
         type: choice
         description: "管理器调用方向"
