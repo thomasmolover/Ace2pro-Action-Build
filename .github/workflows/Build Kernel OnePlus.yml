@@ -17,7 +17,7 @@ on:
           - oneplus_10t_v
           - oneplus_11r_b
           - oneplus_ace2_b
-          - oneplus_pad_lite_v
+          - oneplus_pad_lite_b
           - oneplus_pad_mt6983_b
           - oneplus_ace_2v_b
           - oneplus_ace_pro_v
@@ -51,6 +51,7 @@ on:
           - oneplus_ace5_ultra_bak_b
           - oneplus_pad2_mt6991_b
           - oneplus_ace_6
+          - oneplus_turbo_6
           - oneplus_ace_6t
           - oneplus_ace_6t_aosp
           - oneplus_15r
