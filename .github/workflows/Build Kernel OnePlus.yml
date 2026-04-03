@@ -354,6 +354,14 @@ jobs:
           git config --global user.name "Numbersf"
           git config --global user.email "263623064@qq.com"
 
+      - name: Fork Check
+        run: |
+          repo="${{ github.repository }}"; json=$(curl -s "https://api.github.com/repos/$repo")
+          parent=$(echo "$json" | grep -o '"full_name": *"[^"]*"' | head -n 2 | tail -n 1 | sed 's/.*"full_name": *"\([^"]*\)".*/\1/')
+          if [ -n "$parent" ] && [ "$parent" != "Numbersf/Action-Build" ]; then
+            echo "::warning file=.github/workflows/Build Kernel OnePlus.yml,title=Source Warning::您使用的内核编译地址并非官方源，您可能运行失败或者出现内核异常。"
+          fi
+
       - name: Install Dependencies + APTC
         uses: awalsh128/cache-apt-pkgs-action@latest 
         with: 
