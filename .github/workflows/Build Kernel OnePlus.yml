@@ -356,7 +356,7 @@ jobs:
           print(''.join(out))
           # 异常字符警告
           if warn:
-              print("::warning title=BUILD_TIME Error::检测到BUILD_TIME异常符号调用，请注意!")
+              print("::warning title=BUILD_TIME Error::检测到自定义构建时间异常符号调用，请注意!")
           EOF
 
           # SUFFIX
@@ -377,10 +377,10 @@ jobs:
 
           # 异常字符警告
           if warn:
-              print("::warning title=SUFFIX Error::检测到内核后缀异常符号调用，请注意!")
+              print("::warning title=SUFFIX Error::检测到自定义内核后缀异常符号调用，请注意!")
           # 格式重复检测
           if re.search(r'^\d{1,3}\.\d{1,3}\.\d{1,3}|-?android\d{2,3}-', s):
-              print("::warning title=SUFFIX Formatting Error::检测到内核后缀存在重复或过度内容调用，请注意!")
+              print("::warning title=SUFFIX Format Error::检测到自定义内核后缀存在重复或冗余内容调用，请注意!")
           EOF
 
           echo "------------------------------"
