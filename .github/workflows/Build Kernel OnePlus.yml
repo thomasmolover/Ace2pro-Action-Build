@@ -1251,16 +1251,22 @@ jobs:
           fi
 
       - name: Apply patch_linux and Replace Image
-        if: ${{ github.event.inputs.KPM == 'KPM' }}
+        if: ${{ github.event.inputs.KPM != 'N/A' }}
         run: |
-          PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/SukiSU_patch/kpm"
+          KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/SukiSU_patch/kpm"
+          KPN_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
           OUT_DIR="${GITHUB_WORKSPACE}/kernel_workspace/kernel_platform/out/Final-Image-Find"
           cd "${OUT_DIR}"
-          cp "${PATCH_DIR}/patch_linux" .
-          chmod +x patch_linux
-          ./patch_linux
-          rm -f Image
-          mv oImage Image
+          if [ "${{ github.event.inputs.KPM }}" = "KPM" ]; then
+            cp "${KPM_DIR}/patch_linux" .
+            chmod +x patch_linux
+            ./patch_linux
+          else
+            cp "${KPN_DIR}/kptools-linux" "${KPN_DIR}/kpimg-linux" .
+            chmod +x ./kptools-linux
+            ./kptools-linux -p -i ./Image -k ./kpimg-linux -o ./oImage
+          fi
+          mv -f oImage Image
           cp Image "${GITHUB_WORKSPACE}/AnyKernel3/Image"
 
       - name: Download Latest SUSFS Module from CI
