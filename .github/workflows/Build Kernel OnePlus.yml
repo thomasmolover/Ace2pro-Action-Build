@@ -936,6 +936,7 @@ jobs:
           # ReSukiSU配置
           echo "CONFIG_KSU=y" >> "$CONFIG_FILE"
           echo "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y" >> "$CONFIG_FILE"
+          echo "CONFIG_KSU_TOOLKIT_SUPPORT=y" >> "$CONFIG_FILE"
           if [[ -n "$KSU_CUSTOM_TAG" ]]; then
             echo "CONFIG_KSU_FULL_NAME_FORMAT=\"%TAG_NAME%-${KSU_CUSTOM_TAG}@${MANAGER_BRANCH}[%COMMIT_SHA%]\"" >> "$CONFIG_FILE"
           fi
