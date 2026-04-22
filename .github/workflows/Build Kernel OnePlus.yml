@@ -935,21 +935,24 @@ jobs:
         if: ${{ github.event.inputs.DROID_SPACES == 'true' }}
         run: |
           cd kernel_workspace/kernel_platform/common
-          # 检查原始的 sysv 结构体定义并修改
-          sed -i 's/struct sysv_sem\s*sysvsem;/\/\/ struct sysv_sem sysvsem;/g' include/linux/sched.h
-          sed -i 's/struct sysv_shm\s*sysvshm;/\/\/ struct sysv_shm sysvshm;/g' include/linux/sched.h
-          # 检查 KABI 槽位空闲并修改
-          if grep -q "ANDROID_KABI_USE(1," include/linux/sched.h; then
+          # 注释掉原始的 sysv 结构体定义
+          sed -i 's/struct sysv_sem\s*sysvsem;/\/\/ struct sysv_sem\t\t\tsysvsem;/g' include/linux/sched.h
+          sed -i 's/struct sysv_shm\s*sysvshm;/\/\/ struct sysv_shm\t\t\tsysvshm;/g' include/linux/sched.h
+          # 检查sched.h并修改 KABI 槽位或指针
+          if grep -q "sched_dl_entity.*\*dl_server" include/linux/sched.h; then
+            echo "✅ 检测到 dl_server 指针，使用 packed union 方案"
+            sed -i 's|\tstruct sched_entity\t\tse;|#ifdef CONFIG_SYSVIPC\n\tunion {\n\t\tchar __kabi_ignored_0;\n\t\tstruct sysv_sem\t\t\tsysvsem;\n\t}__attribute__((packed));\n\tunion {\n\t\tchar __kabi_ignored_1;\n\t\tstruct sysv_shm\t\t\tsysvshm;\n\t}__attribute__((packed));\n#endif\n\n\tstruct sched_entity\t\tse;|' include/linux/sched.h
+          elif grep -q "ANDROID_KABI_USE(1," include/linux/sched.h; then
             echo "✅ 检测到 USE(1)，使用槽位 6,7,8"
-            sed -i -e '/ANDROID_KABI_RESERVE(6);/{N;N;s|ANDROID_KABI_RESERVE(6);\n\s*ANDROID_KABI_RESERVE(7);\n\s*ANDROID_KABI_RESERVE(8);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(6, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(7); ANDROID_KABI_RESERVE(8), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(6);\n\tANDROID_KABI_RESERVE(7);\n\tANDROID_KABI_RESERVE(8);\n#endif|;}' include/linux/sched.h
+            sed -i -e '/ANDROID_KABI_RESERVE(6);/{N;N;s|\tANDROID_KABI_RESERVE(6);\n\tANDROID_KABI_RESERVE(7);\n\tANDROID_KABI_RESERVE(8);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(6, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(7); ANDROID_KABI_RESERVE(8), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(6);\n\tANDROID_KABI_RESERVE(7);\n\tANDROID_KABI_RESERVE(8);\n#endif|;}' include/linux/sched.h
           elif grep -q "ANDROID_KABI_RESERVE(1);" include/linux/sched.h; then
             echo "✅ 检测到 RESERVE(1)，使用槽位 1,2,3"
-            sed -i -e '/ANDROID_KABI_RESERVE(1);/{N;N;s|ANDROID_KABI_RESERVE(1);\n\s*ANDROID_KABI_RESERVE(2);\n\s*ANDROID_KABI_RESERVE(3);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(1, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(2); ANDROID_KABI_RESERVE(3), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(1);\n\tANDROID_KABI_RESERVE(2);\n\tANDROID_KABI_RESERVE(3);\n#endif|;}' include/linux/sched.h
+            sed -i -e '/ANDROID_KABI_RESERVE(1);/{N;N;N;N;N;N;N;s|\tANDROID_KABI_RESERVE(1);\n\tANDROID_KABI_RESERVE(2);\n\tANDROID_KABI_RESERVE(3);\n\tANDROID_KABI_RESERVE(4);\n\tANDROID_KABI_RESERVE(5);\n\tANDROID_KABI_RESERVE(6);\n\tANDROID_KABI_RESERVE(7);\n\tANDROID_KABI_RESERVE(8);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(1, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(2); ANDROID_KABI_RESERVE(3), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(1);\n\tANDROID_KABI_RESERVE(2);\n\tANDROID_KABI_RESERVE(3);\n#endif\n\tANDROID_KABI_RESERVE(4);\n\tANDROID_KABI_RESERVE(5);\n\tANDROID_KABI_RESERVE(6);\n\tANDROID_KABI_RESERVE(7);\n\tANDROID_KABI_RESERVE(8);|;}' include/linux/sched.h
           elif grep -q "ANDROID_KABI_RESERVE(3);" include/linux/sched.h; then
             echo "✅ fallback，使用槽位 3,4,5"
-            sed -i -e '/ANDROID_KABI_RESERVE(3);/{N;N;s|ANDROID_KABI_RESERVE(3);\n\s*ANDROID_KABI_RESERVE(4);\n\s*ANDROID_KABI_RESERVE(5);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(3, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(4); ANDROID_KABI_RESERVE(5), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(3);\n\tANDROID_KABI_RESERVE(4);\n\tANDROID_KABI_RESERVE(5);\n#endif|;}' include/linux/sched.h
+            sed -i -e '/ANDROID_KABI_RESERVE(3);/{N;N;N;s|\tANDROID_KABI_RESERVE(3);\n\tANDROID_KABI_RESERVE(4);\n\tANDROID_KABI_RESERVE(5);\n\tANDROID_KABI_RESERVE(6);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(3, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(4); ANDROID_KABI_RESERVE(5), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(3);\n\tANDROID_KABI_RESERVE(4);\n\tANDROID_KABI_RESERVE(5);\n#endif\n\tANDROID_KABI_RESERVE(6);|;}' include/linux/sched.h
           else
-            echo "❌ 无法通过上下文精准匹配 KABI 槽位"
+            echo "❌ 无法通过上下文精准匹配 KABI 槽位或对应指针"
             exit 1
           fi
 
@@ -1345,7 +1348,8 @@ jobs:
         if: ${{ github.event.inputs.KPM != 'N/A' }}
         run: |
           KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/SukiSU_patch/kpm"
-          KPN_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
+          # KPM_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/kpm"
+          KPN_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/kpn"
           OUT_DIR="${GITHUB_WORKSPACE}/kernel_workspace/kernel_platform/out/Final-Image-Find"
           cd "${OUT_DIR}"
           if [ "${{ github.event.inputs.KPM }}" = "KPM" ]; then
