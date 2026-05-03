@@ -639,9 +639,6 @@ jobs:
             chmod +x "$path"
           done
 
-          git add -A
-          git commit -m "Custom suffix & removed -dirty"
-
       # 伪官方格式的随机后缀（仅在 SUFFIX 未设置时生效）*
       - name: Custom Kernel Random Suffix if empty
         if: ${{ github.event.inputs.SUFFIX == '' }}
@@ -688,9 +685,6 @@ jobs:
 
             chmod +x "$path"
           done
-
-          git add -A
-          git commit -m "Random suffix & remove -dirty"
 
       - name: Resolve Manager Source
         id: manager
