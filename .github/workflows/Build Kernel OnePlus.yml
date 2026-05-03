@@ -840,6 +840,11 @@ jobs:
               fi
             fi
           fi
+          if [ -f fs/namespace.c.rej ]; then
+            echo "::group::❌ 补丁在 fs/namespace.c 出现 hunk FAILED，点击查看具体信息"
+            cat fs/namespace.c.rej
+            echo "::endgroup::"
+          fi
 
       # OGKI转换GKI，无需修改 dtbo 开机
       - name: Apply Convert HMBIRD_OGKI to HMBIRD_GKI
