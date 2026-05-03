@@ -86,12 +86,17 @@ Prohibit the promotion of forked repositories with **no modifications**; see [LI
 ------
  
 # Features in Development
-- [ ] ccache supports AB update mode
+- [x] ~ccache support for A/B update mode~ (Functionality already basically implemented via ccache-ECS and other code logic)
+- [ ] Support for LXC/Docker functionality and partial fixes for DROIDSPACES issues on some devices
+- [ ] LZ4 automatic upgrade following upstream,[#178](https://github.com/Numbersf/Action-Build/pull/178)
+- [ ] Full support for all kernel versions of Fengchi
 - Toothpaste should be squeezed bit by bit, GPUs should be cut slice by slice, PPTs should be shown slide by slide, and code should be written line by line — more features and optimizations... stay tuned!
  
 # Changelog
 > Minor updates will be ignored. For more details, please refer to the commit.
  
+- Preliminary adaptation for `DROIDSPACES`.  
+
 - Full support for `Re:Kernel`, automatically following upstream changes.  
  
 - Multiple external warnings enabled — checks whether the `fork source` is normal, if the kernel suffix build time contains abnormal symbol calls, etc.  
