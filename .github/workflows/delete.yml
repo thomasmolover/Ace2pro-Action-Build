@@ -112,7 +112,7 @@ jobs:
             if [[ "$STATE" == "in_progress" || "$STATE" == "queued" || "$STATE" == "waiting" ]]; then
               echo "#${NUM}（ID: $RUN_ID）仍在运行中（$STATE），跳过。"
             else
-              echo "🗑️  删除 #${NUM}（ID: $RUN_ID，conclusion: $CONCLUSION）..."
+              echo "删除 #${NUM}（ID: $RUN_ID，conclusion: $CONCLUSION）..."
               gh run delete "$RUN_ID" --repo "$REPO" \
                 && echo "✅ 已删除 #${NUM}" \
                 || echo "❌ 删除失败 #${NUM}"
@@ -184,10 +184,10 @@ jobs:
               while IFS= read -r RUN_ID; do
                 [ -z "$RUN_ID" ] && continue
                 [[ "$RUN_ID" == "$CURRENT_RUN_ID" ]] && continue
-                echo "  取消 ID: $RUN_ID"
+                echo "取消 ID: $RUN_ID"
                 gh run cancel "$RUN_ID" --repo "$REPO" \
                   && CANCEL_COUNT=$((CANCEL_COUNT + 1)) \
-                  || echo "  取消失败: $RUN_ID"
+                  || echo "取消失败: $RUN_ID"
               done < <(gh run list \
                 --repo "$REPO" \
                 --workflow "$WORKFLOW_NAME" \
