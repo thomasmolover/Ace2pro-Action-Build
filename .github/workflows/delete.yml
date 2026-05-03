@@ -85,83 +85,105 @@ jobs:
           CURRENT_RUN_ID: ${{ github.run_id }}
         run: |
           set -e
+          TMP_DIR=$(mktemp -d)
+          trap "rm -rf $TMP_DIR" EXIT
 
           echo "查找工作流 \"$WORKFLOW_NAME\" 的 ID..."
-          WORKFLOWS_JSON=$(gh api repos/$REPO/actions/workflows || true)
-          if ! echo "$WORKFLOWS_JSON" | jq -e '.workflows | type=="array"' >/dev/null 2>&1; then
-            echo "❌ 无法获取 workflows（GitHub API 非 JSON）"
+          gh api repos/$REPO/actions/workflows > "$TMP_DIR/workflows.json" || {
+            echo "❌ 无法获取 workflows"
+            exit 1
+          }
+          if ! jq -e '.workflows | type=="array"' "$TMP_DIR/workflows.json" >/dev/null 2>&1; then
+            echo "❌ workflows API 返回非预期格式"
             exit 1
           fi
-          WORKFLOW_ID=$(echo "$WORKFLOWS_JSON" | jq -r ".workflows[] | select(.name == \"$WORKFLOW_NAME\") | .id")
+          WORKFLOW_ID=$(jq -r ".workflows[] | select(.name == \"$WORKFLOW_NAME\") | .id" "$TMP_DIR/workflows.json")
           if [ -z "$WORKFLOW_ID" ]; then
             echo "未找到工作流 \"$WORKFLOW_NAME\"，退出。"
             exit 1
           fi
+          echo "找到工作流 ID: $WORKFLOW_ID"
 
           echo "开始分页获取所有运行记录..."
           PER_PAGE=100
           PAGE=1
-          ALL_RUNS="[]"
+          echo "[]" > "$TMP_DIR/all_runs.json"
           while true; do
-            RESP=$(gh api "repos/$REPO/actions/workflows/$WORKFLOW_ID/runs?per_page=$PER_PAGE&page=$PAGE" || true)
-            if ! echo "$RESP" | jq -e '.workflow_runs | type=="array"' >/dev/null 2>&1; then
+            gh api "repos/$REPO/actions/workflows/$WORKFLOW_ID/runs?per_page=$PER_PAGE&page=$PAGE" \
+              > "$TMP_DIR/page_resp.json" 2>/dev/null || {
+              echo "⚠️ 第 $PAGE 页请求失败，停止分页"
+              break
+            }
+            if ! jq -e '.workflow_runs | type=="array"' "$TMP_DIR/page_resp.json" >/dev/null 2>&1; then
               echo "⚠️ runs API 返回非 JSON，停止分页"
               break
             fi
-
-            RUNS=$(echo "$RESP" | jq '.workflow_runs')
-            COUNT_THIS_PAGE=$(echo "$RUNS" | jq 'length')
+            COUNT_THIS_PAGE=$(jq '.workflow_runs | length' "$TMP_DIR/page_resp.json")
             if [ "$COUNT_THIS_PAGE" -eq 0 ]; then break; fi
-            ALL_RUNS=$(jq -s 'add' <(echo "$ALL_RUNS") <(echo "$RUNS"))
+            jq -s '.[0] + .[1]' "$TMP_DIR/all_runs.json" <(jq '.workflow_runs' "$TMP_DIR/page_resp.json") \
+              > "$TMP_DIR/all_runs_new.json"
+            mv "$TMP_DIR/all_runs_new.json" "$TMP_DIR/all_runs.json"
             PAGE=$((PAGE + 1))
           done
-
-          echo "共获取到 $(echo "$ALL_RUNS" | jq 'length') 条运行记录。"
+          echo "共获取到 $(jq 'length' "$TMP_DIR/all_runs.json") 条运行记录。"
 
           if [[ "$CANCEL_ALL" == "true" ]]; then
             echo "开始取消进行中或排队中的运行..."
             CANCEL_COUNT=0
-            echo "$ALL_RUNS" | jq -c '.[] | select((.status == "in_progress") or (.status == "queued"))' | while read run; do
+            jq -c '.[] | select((.status == "in_progress") or (.status == "queued"))' \
+              "$TMP_DIR/all_runs.json" > "$TMP_DIR/to_cancel.json"
+            while IFS= read -r run; do
               ID=$(echo "$run" | jq -r '.id')
-              if [[ "$ID" == "$CURRENT_RUN_ID" ]]; then continue; fi
+              [[ "$ID" == "$CURRENT_RUN_ID" ]] && continue
               echo "取消运行 ID: $ID"
-              gh api -X POST "repos/$REPO/actions/runs/$ID/cancel" && CANCEL_COUNT=$((CANCEL_COUNT + 1))
-            done
+              gh api -X POST "repos/$REPO/actions/runs/$ID/cancel" \
+                && CANCEL_COUNT=$((CANCEL_COUNT + 1)) || echo "取消失败: $ID"
+            done < "$TMP_DIR/to_cancel.json"
             echo "已取消 $CANCEL_COUNT 条运行。"
           fi
 
           echo "开始处理删除逻辑..."
           if [[ "$REVERSE_ORDER" == "true" ]]; then
-            SORTED_RUNS=$(echo "$ALL_RUNS" | jq 'sort_by(.run_started_at)')
+            jq 'sort_by(.run_started_at)' "$TMP_DIR/all_runs.json" > "$TMP_DIR/sorted_runs.json"
           else
-            SORTED_RUNS=$(echo "$ALL_RUNS" | jq 'sort_by(.run_started_at) | reverse')
+            jq 'sort_by(.run_started_at) | reverse' "$TMP_DIR/all_runs.json" > "$TMP_DIR/sorted_runs.json"
           fi
+          jq ".[0:${COUNT}]" "$TMP_DIR/sorted_runs.json" > "$TMP_DIR/to_delete.json"
 
-          TO_DELETE_RUNS=$(echo "$SORTED_RUNS" | jq ".[0:${COUNT}]")
-
-          echo "$TO_DELETE_RUNS" | jq -c '.[]' | while read run; do
+          jq -c '.[]' "$TMP_DIR/to_delete.json" > "$TMP_DIR/to_delete_lines.txt"
+          while IFS= read -r run; do
             ID=$(echo "$run" | jq -r '.id')
             STATUS=$(echo "$run" | jq -r '.conclusion')
             STATE=$(echo "$run" | jq -r '.status')
 
-            if [[ "$STATE" == "in_progress" || "$STATE" == "queued" ]]; then continue; fi
-            if [[ "$STATUS" == "failure" && "$DELETE_FAILED" != "true" ]]; then continue; fi
-            if [[ "$STATUS" == "success" && "$DELETE_SUCCESS" != "true" ]]; then continue; fi
-            if [[ "$STATUS" == "cancelled" && "$DELETE_CANCELLED" != "true" ]]; then continue; fi
+            [[ "$STATE" == "in_progress" || "$STATE" == "queued" ]] && continue
+            [[ "$STATUS" == "failure" && "$DELETE_FAILED" != "true" ]] && continue
+            [[ "$STATUS" == "success" && "$DELETE_SUCCESS" != "true" ]] && continue
+            [[ "$STATUS" == "cancelled" && "$DELETE_CANCELLED" != "true" ]] && continue
 
-            echo "删除运行记录 ID: $ID"
-            gh api -X DELETE "repos/$REPO/actions/runs/$ID" || echo "删除失败"
-          done
+            echo "删除运行记录 ID: $ID (conclusion=$STATUS)"
+            gh api -X DELETE "repos/$REPO/actions/runs/$ID" || echo "删除失败: $ID"
+          done < "$TMP_DIR/to_delete_lines.txt"
 
           echo "清理本工作流运行记录（排除当前运行）..."
-          SELF_WORKFLOW_ID=$(gh api repos/$REPO/actions/workflows | jq -r '.workflows[] | select(.name == "Workflow and Cache Cleanup") | .id')
+          SELF_WORKFLOW_ID=$(jq -r '.workflows[] | select(.name == "Workflow and Cache Cleanup") | .id' \
+            "$TMP_DIR/workflows.json")
           if [ -n "$SELF_WORKFLOW_ID" ]; then
-            SELF_RUNS=$(gh api "repos/$REPO/actions/workflows/$SELF_WORKFLOW_ID/runs?per_page=50" | jq -c '.workflow_runs[]')
-            echo "$SELF_RUNS" | while read run; do
-              ID=$(echo "$run" | jq -r '.id')
-              if [[ "$ID" == "$CURRENT_RUN_ID" ]]; then continue; fi
-              echo "删除本工作流运行记录 ID: $ID"
-              gh api -X DELETE "repos/$REPO/actions/runs/$ID" || echo "删除失败"
+            SELF_PAGE=1
+            while true; do
+              gh api "repos/$REPO/actions/workflows/$SELF_WORKFLOW_ID/runs?per_page=50&page=$SELF_PAGE" \
+                > "$TMP_DIR/self_page.json" 2>/dev/null || break
+              if ! jq -e '.workflow_runs | type=="array"' "$TMP_DIR/self_page.json" >/dev/null 2>&1; then break; fi
+              SELF_COUNT=$(jq '.workflow_runs | length' "$TMP_DIR/self_page.json")
+              if [ "$SELF_COUNT" -eq 0 ]; then break; fi
+              jq -c '.workflow_runs[]' "$TMP_DIR/self_page.json" > "$TMP_DIR/self_runs_lines.txt"
+              while IFS= read -r run; do
+                ID=$(echo "$run" | jq -r '.id')
+                [[ "$ID" == "$CURRENT_RUN_ID" ]] && continue
+                echo "删除本工作流运行记录 ID: $ID"
+                gh api -X DELETE "repos/$REPO/actions/runs/$ID" || echo "删除失败: $ID"
+              done < "$TMP_DIR/self_runs_lines.txt"
+              SELF_PAGE=$((SELF_PAGE + 1))
             done
           fi
 
