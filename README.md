@@ -86,11 +86,16 @@
 ------
  
 # 开发中的功能
-- [ ] ccache支持AB更新模式
+- [x] ~ccache支持AB更新模式~ (ccache-ECS和其他代码逻辑已经基本完成此功能实现)
+- [ ] LXC/Docker 功能支持以及部分设备DROIDSPACES异常修复
+- [ ] LZ4跟随上游自动升级，[#178](https://github.com/Numbersf/Action-Build/pull/178)
+- [ ] 全内核版本风驰支持
 - 牙膏要一点一点挤,显卡要一刀一刀切,PPT要一张一张放,代码要一行一行写,更多功能及优化...敬请期待....
  
 # 更新日志
 >小的更新内容将被忽略 更多内容请参看提交
+ 
+- 初步适配`DROIDSPACES`  
  
 - 完整适配`Re:Kernel`,自动跟随上游  
  
