@@ -437,11 +437,27 @@ jobs:
             echo "::warning title=Source Warning::您使用的内核编译地址为非官方源，可能导致运行失败或内核异常。"
           fi
 
-      - name: Install Dependencies + APTC
-        uses: Numbersf/cache-apt-pkgs-action@latest 
-        with: 
-          packages: python3 git curl libelf-dev build-essential flex bison libssl-dev libncurses-dev liblz4-tool zlib1g-dev libxml2-utils rsync unzip gawk dos2unix kmod libdw-dev elfutils
-          execute_install_scripts: true
+      - name: Restore APT Cache
+        id: apt-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/apt-cache-debs
+          key: apt-cache-${{ runner.os }}-${{ github.ref_name }}-${{ github.event.inputs.FILE }}-v1
+          restore-keys: |
+            apt-cache-${{ runner.os }}-${{ github.ref_name }}-
+            apt-cache-${{ runner.os }}-
+
+      - name: Install Dependencies
+        run: |
+          mkdir -p ~/apt-cache-debs
+          if [ "${{ steps.apt-cache.outputs.cache-hit }}" != "true" ]; then
+            sudo apt-get update
+          else
+            echo "✅ APT 缓存命中，跳过 apt-get update"
+          fi
+          sudo apt-get install -y --no-install-recommends -o Dir::Cache::Archives="$HOME/apt-cache-debs" python3 git curl libelf-dev build-essential flex bison libssl-dev libncurses-dev liblz4-tool zlib1g-dev libxml2-utils rsync unzip gawk dos2unix kmod libdw-dev elfutils
+          sudo rm -f ~/apt-cache-debs/lock
+          sudo rm -rf ~/apt-cache-debs/partial
 
       - name: Install Ccache-ECS
         run: |
