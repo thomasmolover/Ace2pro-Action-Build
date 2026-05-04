@@ -57,7 +57,7 @@ on:
         required: false
         default: ''
       target_run_ids:
-        description: '按Run ID删除'
+        description: '按Run-ID删除'
         required: false
         default: ''
 
@@ -65,7 +65,7 @@ permissions:
   actions: write
 
 jobs:
-  cleanup:
+  cleanup-workflow:
     runs-on: ubuntu-latest
     if: >-
       ${{ inputs.cancel_all
@@ -78,7 +78,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
     steps:
-      - name: 按运行编号删除
+      - name: Delete by Run Number
         if: ${{ inputs.target_run_numbers != '' }}
         env:
           WORKFLOW_NAME: ${{ inputs.workflow_name }}
@@ -119,7 +119,7 @@ jobs:
             fi
           done
 
-      - name: 按Run ID删除
+      - name: Delete by Run ID
         if: ${{ inputs.target_run_ids != '' }}
         env:
           TARGET_RUN_IDS: ${{ inputs.target_run_ids }}
@@ -158,7 +158,7 @@ jobs:
             fi
           done
 
-      - name: 批量取消和删除
+      - name: Batch Cancel and Delete
         if: >-
           ${{ inputs.target_run_numbers == ''
            && inputs.target_run_ids == ''
@@ -230,13 +230,13 @@ jobs:
             echo "已删除 $DELETED 条 $CONCLUSION 记录。"
           done
 
-  clean-caches:
+  cleanup-caches:
     runs-on: ubuntu-latest
     if: ${{ inputs.cache_mode != 'none' }}
     permissions:
       actions: write
     steps:
-      - name: 根据模式清理缓存
+      - name: Clean caches by mode
         uses: actions/github-script@v6
         with:
           script: |
@@ -287,7 +287,7 @@ jobs:
               console.log(`共找到 ${totalFound} 个缓存，成功删除 ${totalDeleted} 个。`);
             }
 
-  cleanup-self:
+  cleanup-self-workflow:
     runs-on: ubuntu-latest
     if: always()
     env:
@@ -295,7 +295,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
     steps:
-      - name: 清理本工作流自身运行记录
+      - name: Clean the workflow own Run History
         run: |
           set -e
           echo "清理本工作流（Workflow and Cache Cleanup）历史记录..."
